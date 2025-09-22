@@ -12,6 +12,15 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .hidden-from-screen {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
         
         /* Estilos para a visualização da etiqueta na tela */
         .label-preview-container {
@@ -46,6 +55,12 @@
         @media print {
             body * {
                 visibility: hidden;
+            }
+            .hidden-from-screen {
+                position: static;
+                width: auto;
+                height: auto;
+                overflow: visible;
             }
 
             /* Impressão de etiqueta única */
@@ -189,14 +204,14 @@
     </div>
     
     <!-- Elemento para impressão única -->
-    <div id="single-print-area" class="print-area">
+    <div id="single-print-area" class="hidden-from-screen">
         <div id="product-code-print" class="product-code"></div>
         <svg id="barcode-print"></svg>
         <div id="product-description-print" class="product-description"></div>
     </div>
 
     <!-- Elemento para impressão em lote -->
-    <div id="batch-print-area"></div>
+    <div id="batch-print-area" class="hidden-from-screen"></div>
 
     <script>
         const generateBtn = document.getElementById('generateBtn');
