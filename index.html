@@ -146,6 +146,7 @@
                 Imprimir Etiqueta Única
             </button>
         </div>
+        <div id="single-error" class="text-red-600 text-sm hidden mt-4 p-3 bg-red-50 rounded-md border border-red-200"></div>
         
         <!-- Divisor -->
         <div class="my-8 border-t border-gray-300"></div>
@@ -188,7 +189,7 @@
     </div>
     
     <!-- Elemento para impressão única -->
-    <div id="single-print-area" class="print-area" style="display: none;">
+    <div id="single-print-area" class="print-area">
         <div id="product-code-print" class="product-code"></div>
         <svg id="barcode-print"></svg>
         <div id="product-description-print" class="product-description"></div>
@@ -204,6 +205,7 @@
         const productDescriptionInput = document.getElementById('productDescriptionInput');
         const batchFileUpload = document.getElementById('batchFileUpload');
         const batchError = document.getElementById('batch-error');
+        const singleError = document.getElementById('single-error');
         
         const previewSection = document.getElementById('preview-section');
         const infoSection = document.getElementById('info-section');
@@ -220,8 +222,10 @@
             const code = productCodeInput.value;
             const description = productDescriptionInput.value;
 
+            showSingleError(''); // Limpa erros anteriores
+
             if (!code) {
-                alert('Por favor, insira o Código do Produto.');
+                showSingleError('Por favor, insira o Código do Produto.');
                 return;
             }
 
@@ -331,6 +335,11 @@
         function showBatchError(message) {
             batchError.textContent = message;
             batchError.classList.toggle('hidden', !message);
+        }
+
+        function showSingleError(message) {
+            singleError.textContent = message;
+            singleError.classList.toggle('hidden', !message);
         }
 
     </script>
