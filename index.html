@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Etiquetas com Código de Barras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Importa a biblioteca JsBarcode para gerar os códigos de barras -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Estilos para a visualização da etiqueta na tela */
+        .label-preview-container {
+            width: 500px;
+            height: 150px;
+            border: 2px dashed #9ca3af;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-code {
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .product-description {
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        #barcode {
+            width: 100%;
+            height: 60px;
+        }
+        
+        /* Estilos para a impressão */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            /* Impressão de etiqueta única */
+            body.printing-single #single-print-area,
+            body.printing-single #single-print-area * {
+                visibility: visible;
+            }
+            #single-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 10cm;
+                height: 3cm;
+                margin: 0;
+                padding: 2mm;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+                border: none;
+            }
+            #single-print-area .product-code {
+                font-size: 12pt;
+                font-weight: bold;
+            }
+            #single-print-area .product-description {
+                font-size: 10pt;
+            }
+            #barcode-print {
+                height: 1.2cm;
+                width: 8cm;
+            }
+
+            /* Impressão em Lote */
+            body.printing-batch #batch-print-area,
+            body.printing-batch #batch-print-area * {
+                visibility: visible;
+            }
+            #batch-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .label-for-print {
+                width: 10cm;
+                height: 3cm;
+                padding: 2mm;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+                overflow: hidden;
+                page-break-after: always;
+            }
+            .label-for-print .product-code {
+                font-size: 12pt;
+                font-weight: bold;
+                text-align: center;
+            }
+            .label-for-print .product-description {
+                font-size: 10pt;
+                text-align: center;
+            }
+            .label-for-print .barcode-svg-print {
+                height: 1.2cm;
+                width: 8cm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="main-content" class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">Gerador de Etiquetas</h1>
+        <p class="text-center text-gray-600 mb-6">Gere uma etiqueta individualmente ou várias a partir de um arquivo.</p>
+        
+        <!-- Formulário de Entrada Individual -->
+        <div class="space-y-4">
+            <div>
+                <label for="productCodeInput" class="block text-sm font-medium text-gray-700">Código do Produto</label>
+                <input type="text" id="productCodeInput" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="EX: 123456789">
+            </div>
+            <div>
+                <label for="productDescriptionInput" class="block text-sm font-medium text-gray-700">Descrição do Produto</label>
+                <input type="text" id="productDescriptionInput" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="EX: Camiseta de Algodão P Azul">
+            </div>
+        </div>
+
+        <!-- Botões de Ação Individual -->
+        <div class="mt-6 flex flex-col sm:flex-row gap-3">
+            <button id="generateBtn" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Gerar Etiqueta
+            </button>
+            <button id="printBtn" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" disabled>
+                Imprimir Etiqueta Única
+            </button>
+        </div>
+        
+        <!-- Divisor -->
+        <div class="my-8 border-t border-gray-300"></div>
+
+        <!-- Geração em Lote -->
+        <div class="mt-6">
+            <h2 class="text-xl font-semibold text-center text-gray-800 mb-4">Impressão em Lote</h2>
+            <p class="text-center text-gray-600 mb-4">Carregue um arquivo para gerar e imprimir várias etiquetas de uma vez.</p>
+            <div class="space-y-2">
+                <div>
+                    <label for="batchFileUpload" class="block text-sm font-medium text-gray-700">Carregar Arquivo (.csv ou .txt)</label>
+                    <input type="file" id="batchFileUpload" accept=".csv,.txt" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    <p class="mt-1 text-xs text-gray-500">Formato: uma etiqueta por linha como <code class="bg-gray-200 p-1 rounded">código,descrição</code>.</p>
+                </div>
+                <div id="batch-error" class="text-red-600 text-sm hidden p-3 bg-red-50 rounded-md border border-red-200"></div>
+            </div>
+        </div>
+
+        <!-- Área de Pré-visualização Individual -->
+        <div id="preview-section" class="mt-8 hidden">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 text-center">Pré-visualização da Etiqueta (10cm x 3cm)</h2>
+            <div class="flex justify-center">
+                <div id="label-preview" class="label-preview-container">
+                    <div id="product-code-preview" class="product-code"></div>
+                    <svg id="barcode"></svg>
+                    <div id="product-description-preview" class="product-description"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informação sobre a leitura do código -->
+        <div id="info-section" class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg hidden">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                </div>
+                <div class="ml-3"><p class="text-sm text-blue-700"><span class="font-bold">O que o leitor vai capturar?</span> Ao escanear, o leitor registrará apenas o <strong id="scan-info" class="font-bold">Código do Produto</strong>.</p></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Elemento para impressão única -->
+    <div id="single-print-area" class="print-area" style="display: none;">
+        <div id="product-code-print" class="product-code"></div>
+        <svg id="barcode-print"></svg>
+        <div id="product-description-print" class="product-description"></div>
+    </div>
+
+    <!-- Elemento para impressão em lote -->
+    <div id="batch-print-area"></div>
+
+    <script>
+        const generateBtn = document.getElementById('generateBtn');
+        const printBtn = document.getElementById('printBtn');
+        const productCodeInput = document.getElementById('productCodeInput');
+        const productDescriptionInput = document.getElementById('productDescriptionInput');
+        const batchFileUpload = document.getElementById('batchFileUpload');
+        const batchError = document.getElementById('batch-error');
+        
+        const previewSection = document.getElementById('preview-section');
+        const infoSection = document.getElementById('info-section');
+        const scanInfo = document.getElementById('scan-info');
+        
+        const productCodePreview = document.getElementById('product-code-preview');
+        const productDescriptionPreview = document.getElementById('product-description-preview');
+        
+        const productCodePrint = document.getElementById('product-code-print');
+        const productDescriptionPrint = document.getElementById('product-description-print');
+
+        // Geração de etiqueta única
+        generateBtn.addEventListener('click', () => {
+            const code = productCodeInput.value;
+            const description = productDescriptionInput.value;
+
+            if (!code) {
+                alert('Por favor, insira o Código do Produto.');
+                return;
+            }
+
+            productCodePreview.textContent = code;
+            productDescriptionPreview.textContent = description;
+            productCodePrint.textContent = code;
+            productDescriptionPrint.textContent = description;
+
+            JsBarcode("#barcode", code, { format: "CODE128", displayValue: false, margin: 10, height: 50 });
+            JsBarcode("#barcode-print", code, { format: "CODE128", displayValue: false, margin: 0, height: 40 });
+
+            previewSection.classList.remove('hidden');
+            infoSection.classList.remove('hidden');
+            scanInfo.textContent = `"${code}"`;
+            printBtn.disabled = false;
+        });
+
+        // Impressão de etiqueta única
+        printBtn.addEventListener('click', () => {
+            document.body.classList.add('printing-single');
+            window.print();
+            document.body.classList.remove('printing-single');
+        });
+
+        // Upload e impressão em lote
+        batchFileUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                processBatchFile(content);
+            };
+            reader.onerror = () => {
+                showBatchError('Não foi possível ler o arquivo.');
+            };
+            reader.readAsText(file);
+             // Limpa o valor para permitir carregar o mesmo arquivo novamente
+            event.target.value = null;
+        });
+
+        function processBatchFile(content) {
+            const batchPrintArea = document.getElementById('batch-print-area');
+            batchPrintArea.innerHTML = '';
+            showBatchError(''); 
+
+            const lines = content.split(/\r?\n/);
+            let labelsGenerated = 0;
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const parts = trimmedLine.split(',');
+                if (parts.length < 2) {
+                    console.warn(`Linha ${index + 1} ignorada: formato inválido.`);
+                    return;
+                }
+
+                const code = parts[0].trim();
+                const description = parts.slice(1).join(',').trim();
+
+                if (!code) {
+                    console.warn(`Linha ${index + 1} ignorada: código do produto ausente.`);
+                    return;
+                }
+
+                const labelElement = document.createElement('div');
+                labelElement.className = 'label-for-print';
+
+                const codeElement = document.createElement('div');
+                codeElement.className = 'product-code';
+                codeElement.textContent = code;
+
+                const barcodeId = `barcode-batch-${index}`;
+                const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                barcodeSvg.id = barcodeId;
+                barcodeSvg.className = 'barcode-svg-print';
+
+                const descriptionElement = document.createElement('div');
+                descriptionElement.className = 'product-description';
+                descriptionElement.textContent = description;
+
+                labelElement.appendChild(codeElement);
+                labelElement.appendChild(barcodeSvg);
+                labelElement.appendChild(descriptionElement);
+                batchPrintArea.appendChild(labelElement);
+
+                try {
+                    JsBarcode(`#${barcodeId}`, code, { format: "CODE128", displayValue: false, margin: 0, height: 40 });
+                    labelsGenerated++;
+                } catch (e) {
+                    console.error(`Erro ao gerar código de barras para "${code}" na linha ${index + 1}:`, e);
+                }
+            });
+
+            if (labelsGenerated > 0) {
+                document.body.classList.add('printing-batch');
+                window.print();
+                document.body.classList.remove('printing-batch');
+            } else {
+                showBatchError('Nenhuma etiqueta válida foi encontrada no arquivo. Verifique o formato: código,descrição');
+            }
+        }
+
+        function showBatchError(message) {
+            batchError.textContent = message;
+            batchError.classList.toggle('hidden', !message);
+        }
+
+    </script>
+
+</body>
+</html>
+
